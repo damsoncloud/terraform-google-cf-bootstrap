@@ -37,3 +37,8 @@ output "tf_environment_state_buckets" {
   description = "Names of the deployers' state buckets, by environment folder name."
   value       = { for environment in keys(var.environments) : environment => google_storage_bucket.state[environment].name }
 }
+
+output "github_workload_identity_provider" {
+  description = "Name of the GitHub Actions Workload Identity Federation provider, for `google-github-actions/auth`; null without the GitHub integration."
+  value       = one(module.github[*].workload_identity_provider)
+}

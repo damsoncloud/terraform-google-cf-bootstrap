@@ -92,3 +92,20 @@ variable "environments" {
     error_message = "The short names must be unique."
   }
 }
+
+variable "github" {
+  description = <<-EOT
+    GitHub Actions integration through Workload Identity Federation; not set up when null:
+    `repository_owner_id`, the ID of the GitHub organisation, the only one trusted;
+    `foundation_repository_ids`, the IDs of the Cloud Foundations repositories, impersonating `tf-plan` from any ref and `tf-bootstrap` from the default branch;
+    `workload_repository_ids`, the IDs of the workload repositories by environment folder name, impersonating the environment's `tf-<short name>` deployer from any ref;
+    `default_branch_name`, the default branch of the Cloud Foundations repositories.
+  EOT
+  type = object({
+    repository_owner_id       = string
+    foundation_repository_ids = optional(list(string), [])
+    workload_repository_ids   = optional(map(list(string)), {})
+    default_branch_name       = optional(string, "main")
+  })
+  default = null
+}

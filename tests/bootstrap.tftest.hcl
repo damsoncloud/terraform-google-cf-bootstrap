@@ -1,7 +1,8 @@
 mock_provider "google" {
   mock_resource "google_service_account" {
     defaults = {
-      member = "serviceAccount:tf@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
+      name   = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-bootstrap@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
+      member = "serviceAccount:tf-bootstrap@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
     }
   }
 }
@@ -188,6 +189,30 @@ run "billing_without_admins_group" {
   assert {
     condition     = length(google_billing_account_iam_member.billing_admins) == 0
     error_message = "No group must be granted without billing_admins_group."
+  }
+}
+
+run "without_github" {
+  command = plan
+
+  assert {
+    condition     = length(module.github) == 0
+    error_message = "The GitHub integration must not be set up without the github input."
+  }
+}
+
+run "with_github" {
+  variables {
+    github = {
+      repository_owner_id       = "1000"
+      foundation_repository_ids = ["2001"]
+      workload_repository_ids   = { production = ["3001"] }
+    }
+  }
+
+  assert {
+    condition     = length(module.github) == 1 && output.github_workload_identity_provider == module.github[0].workload_identity_provider
+    error_message = "The GitHub integration must be set up and its provider name returned."
   }
 }
 
