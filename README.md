@@ -4,8 +4,10 @@ Terraform module of the Damson Cloud GCP Cloud Foundations creating the bootstra
 
 * the bootstrap project and the foundations' Terraform state bucket,
 * the `tf-bootstrap` (apply) and `tf-plan` (plan) service accounts, and a deployer service account (`tf-<env>`) with a state bucket per environment,
-* the billing grants and the organisation roles of `tf-bootstrap`,
-* GitHub Workload Identity Federation trusting only the listed repositories.
+* the organisation roles of `tf-bootstrap` and `tf-plan`, and their billing account grants,
+* optionally, GitHub Workload Identity Federation trusting only the listed repositories, by their immutable IDs ([`modules/github`](modules/github)).
+
+The organisation roles of `tf-bootstrap` and `tf-plan` are returned as outputs, so that the authoritative organisation IAM policy of cf-organization keeps them.
 
 The module is applied in the same Terraform state as [`cf-hierarchy`](https://registry.terraform.io/modules/damsoncloud/cf-hierarchy/google).
 
@@ -23,6 +25,8 @@ module "bootstrap" {
 ```
 
 Pin an exact version. New versions are published as immutable GitHub releases with `vX.Y.Z` tags, following [semantic versioning](https://semver.org/).
+
+See [`examples/basic`](examples/basic) for the module applied with cf-hierarchy, and [`examples/github`](examples/github) for the GitHub Actions integration.
 
 <!-- BEGIN_TF_DOCS -->
 <!-- markdownlint-capture -->
