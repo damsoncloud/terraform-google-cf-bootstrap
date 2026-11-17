@@ -27,11 +27,20 @@ Pin an exact version. New versions are published as immutable GitHub releases wi
 <!-- markdownlint-disable MD013 -->
 ## Inputs
 
-No inputs.
+| Name | Description | Type | Default | Required |
+| ---- | ----------- | ---- | ------- | :------: |
+| billing\_account | ID of the billing account of the bootstrap project, e.g. `012345-6789AB-CDEF01`. | `string` | n/a | yes |
+| folder\_id | The `common` folder holding the bootstrap project, as `folders/<id>`, e.g. the `folders["common"]` output of cf-hierarchy. | `string` | n/a | yes |
+| project\_id | ID of the bootstrap project. Generated as `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project. | `string` | `null` | no |
+| region | Region of the regional resources, e.g. the state buckets. | `string` | `"europe-west4"` | no |
+| state\_bucket\_name | Name of the foundations state bucket. Generated as `cmn-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket. | `string` | `null` | no |
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+| ---- | ----------- |
+| project\_id | ID of the bootstrap project. |
+| state\_bucket | Name of the foundations state bucket. |
 <!-- markdownlint-restore -->
 <!-- END_TF_DOCS -->
 
