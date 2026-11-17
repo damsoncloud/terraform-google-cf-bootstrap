@@ -1,3 +1,13 @@
+variable "organization_id" {
+  description = "ID of the organisation, where the deployer service accounts are granted their roles."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.organization_id))
+    error_message = "The organization_id must be the numeric organisation ID."
+  }
+}
+
 variable "folder_id" {
   description = "The `common` folder holding the bootstrap project, as `folders/<id>`, e.g. the `folders[\"common\"]` output of cf-hierarchy."
   type        = string
@@ -44,4 +54,30 @@ variable "region" {
   description = "Region of the regional resources, e.g. the state buckets."
   type        = string
   default     = "europe-west4"
+}
+
+variable "environments" {
+  description = "Short names of the environments, by environment folder name, e.g. the cf-hierarchy environments. Each environment gets a `tf-<short name>` deployer service account with its own state bucket."
+  type        = map(string)
+  default = {
+    development   = "dev"
+    certification = "cert"
+    production    = "prod"
+    common        = "cmn"
+  }
+
+  validation {
+    condition     = !contains(keys(var.environments), "foundations")
+    error_message = "The environments must not contain foundations, the key of the foundations state bucket."
+  }
+
+  validation {
+    condition     = alltrue([for short_name in values(var.environments) : can(regex("^[a-z][a-z0-9-]{1,25}[a-z0-9]$", short_name))])
+    error_message = "Each short name must be 3-27 lowercase letters, digits or hyphens, starting with a letter and not ending with a hyphen."
+  }
+
+  validation {
+    condition     = length(values(var.environments)) == length(distinct(values(var.environments)))
+    error_message = "The short names must be unique."
+  }
 }

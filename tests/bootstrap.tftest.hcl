@@ -1,4 +1,10 @@
-mock_provider "google" {}
+mock_provider "google" {
+  mock_resource "google_service_account" {
+    defaults = {
+      member = "serviceAccount:tf@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
+    }
+  }
+}
 
 mock_provider "random" {
   mock_resource "random_id" {
@@ -9,6 +15,7 @@ mock_provider "random" {
 }
 
 variables {
+  organization_id = "123456789012"
   folder_id       = "folders/111111111111"
   billing_account = "012345-6789AB-CDEF01"
 }
@@ -20,8 +27,25 @@ run "generated_names" {
   }
 
   assert {
-    condition     = google_storage_bucket.foundations_state.name == "cmn-cf-bootstrap-terraform-state-a1b2" && output.state_bucket == "cmn-cf-bootstrap-terraform-state-a1b2"
+    condition     = google_storage_bucket.state["foundations"].name == "cmn-cf-bootstrap-terraform-state-a1b2" && output.state_bucket == "cmn-cf-bootstrap-terraform-state-a1b2"
     error_message = "The state bucket name must be generated as cmn-cf-bootstrap-terraform-state-<suffix>."
+  }
+
+  assert {
+    condition = output.tf_environment_state_buckets == {
+      certification = "cert-cf-terraform-state-a1b2"
+      common        = "cmn-cf-terraform-state-a1b2"
+      development   = "dev-cf-terraform-state-a1b2"
+      production    = "prod-cf-terraform-state-a1b2"
+    }
+    error_message = "Each environment must have a state bucket named <short name>-cf-terraform-state-<suffix>."
+  }
+
+  assert {
+    condition = alltrue([for environment, binding in google_storage_bucket_iam_member.state_tf_environment :
+      binding.bucket == google_storage_bucket.state[environment].name && binding.member == google_service_account.tf_environment[environment].member
+    ])
+    error_message = "Each deployer must have access to its own state bucket only."
   }
 }
 
@@ -55,20 +79,81 @@ run "state_bucket" {
   }
 
   assert {
-    condition     = google_storage_bucket.foundations_state.name == "cmn-cf-bootstrap-terraform-state-6703"
+    condition     = google_storage_bucket.state["foundations"].name == "cmn-cf-bootstrap-terraform-state-6703"
     error_message = "A given state bucket name must be used."
   }
 
   assert {
     condition = (
-      google_storage_bucket.foundations_state.location == "europe-west4" &&
-      google_storage_bucket.foundations_state.uniform_bucket_level_access &&
-      google_storage_bucket.foundations_state.public_access_prevention == "enforced" &&
-      !google_storage_bucket.foundations_state.force_destroy &&
-      google_storage_bucket.foundations_state.versioning[0].enabled &&
-      google_storage_bucket.foundations_state.soft_delete_policy[0].retention_duration_seconds == 0
+      google_storage_bucket.state["foundations"].location == "europe-west4" &&
+      google_storage_bucket.state["foundations"].uniform_bucket_level_access &&
+      google_storage_bucket.state["foundations"].public_access_prevention == "enforced" &&
+      !google_storage_bucket.state["foundations"].force_destroy &&
+      google_storage_bucket.state["foundations"].versioning[0].enabled &&
+      google_storage_bucket.state["foundations"].soft_delete_policy[0].retention_duration_seconds == 0
     )
     error_message = "The state bucket must be regional, versioned, without soft delete, with uniform access, enforced public access prevention and no force_destroy."
+  }
+}
+
+run "service_accounts" {
+  command = plan
+
+  assert {
+    condition     = google_service_account.tf_bootstrap.account_id == "tf-bootstrap" && google_service_account.tf_plan.account_id == "tf-plan"
+    error_message = "The tf-bootstrap and tf-plan service accounts must be created."
+  }
+
+  assert {
+    condition     = alltrue([for binding in merge(google_organization_iam_member.tf_bootstrap, google_organization_iam_member.tf_plan) : binding.org_id == "123456789012"])
+    error_message = "The organisation roles must be granted in the organisation."
+  }
+
+  assert {
+    condition     = length(setintersection(keys(google_organization_iam_member.tf_plan), ["roles/owner", "roles/editor"])) == 0 && !anytrue([for role in keys(google_organization_iam_member.tf_plan) : endswith(role, "Admin")])
+    error_message = "tf-plan must only have read-only organisation roles."
+  }
+
+  assert {
+    condition     = google_storage_bucket_iam_member.foundations_state_tf_bootstrap.role == "roles/storage.objectAdmin" && google_storage_bucket_iam_member.foundations_state_tf_plan.role == "roles/storage.objectViewer"
+    error_message = "tf-bootstrap must manage and tf-plan only read the foundations state."
+  }
+}
+
+run "service_account_members_and_outputs" {
+  assert {
+    condition = alltrue(concat(
+      [for binding in google_organization_iam_member.tf_bootstrap : binding.member == google_service_account.tf_bootstrap.member],
+      [for binding in google_project_iam_member.tf_bootstrap : binding.member == google_service_account.tf_bootstrap.member && binding.project == "cmn-cf-bootstrap-a1b2"],
+      [for binding in google_organization_iam_member.tf_plan : binding.member == google_service_account.tf_plan.member],
+    ))
+    error_message = "Each role must be granted to its service account."
+  }
+
+  assert {
+    condition     = output.tf_bootstrap_organization_roles == sort(keys(google_organization_iam_member.tf_bootstrap)) && output.tf_plan_organization_roles == sort(keys(google_organization_iam_member.tf_plan))
+    error_message = "The role outputs must list the granted organisation roles."
+  }
+}
+
+run "environment_deployers" {
+  command = plan
+
+  assert {
+    condition     = { for environment, service_account in google_service_account.tf_environment : environment => service_account.account_id } == { certification = "tf-cert", common = "tf-cmn", development = "tf-dev", production = "tf-prod" }
+    error_message = "Each environment must have a tf-<short name> deployer."
+  }
+
+  assert {
+    condition     = alltrue([for binding in google_storage_bucket_iam_member.state_tf_environment : binding.role == "roles/storage.objectUser"])
+    error_message = "The deployers must only use the objects of their state bucket."
+  }
+
+  assert {
+    condition = alltrue([for bucket in google_storage_bucket.state :
+      bucket.versioning[0].enabled && bucket.soft_delete_policy[0].retention_duration_seconds == 0 && bucket.public_access_prevention == "enforced"
+    ])
+    error_message = "The deployers' state buckets must have the settings of the foundations state bucket."
   }
 }
 
@@ -84,6 +169,16 @@ run "apis" {
     condition     = alltrue([for service in google_project_service.bootstrap : !service.disable_on_destroy])
     error_message = "The APIs must not be disabled when removed from the configuration."
   }
+}
+
+run "invalid_organization_id" {
+  command = plan
+
+  variables {
+    organization_id = "organizations/123456789012"
+  }
+
+  expect_failures = [var.organization_id]
 }
 
 run "invalid_folder_id" {
@@ -114,6 +209,36 @@ run "invalid_state_bucket_name" {
   }
 
   expect_failures = [var.state_bucket_name]
+}
+
+run "invalid_environment_short_name" {
+  command = plan
+
+  variables {
+    environments = { development = "Dev" }
+  }
+
+  expect_failures = [var.environments]
+}
+
+run "duplicate_environment_short_names" {
+  command = plan
+
+  variables {
+    environments = { development = "dev", dev = "dev" }
+  }
+
+  expect_failures = [var.environments]
+}
+
+run "foundations_as_environment" {
+  command = plan
+
+  variables {
+    environments = { foundations = "fnd" }
+  }
+
+  expect_failures = [var.environments]
 }
 
 run "invalid_project_id" {

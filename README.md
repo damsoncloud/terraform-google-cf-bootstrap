@@ -30,7 +30,9 @@ Pin an exact version. New versions are published as immutable GitHub releases wi
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | billing\_account | ID of the billing account of the bootstrap project, e.g. `012345-6789AB-CDEF01`. | `string` | n/a | yes |
+| environments | Short names of the environments, by environment folder name, e.g. the cf-hierarchy environments. Each environment gets a `tf-<short name>` deployer service account with its own state bucket. | `map(string)` | ```{ "certification": "cert", "common": "cmn", "development": "dev", "production": "prod" }``` | no |
 | folder\_id | The `common` folder holding the bootstrap project, as `folders/<id>`, e.g. the `folders["common"]` output of cf-hierarchy. | `string` | n/a | yes |
+| organization\_id | ID of the organisation, where the deployer service accounts are granted their roles. | `string` | n/a | yes |
 | project\_id | ID of the bootstrap project. Generated as `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project. | `string` | `null` | no |
 | region | Region of the regional resources, e.g. the state buckets. | `string` | `"europe-west4"` | no |
 | state\_bucket\_name | Name of the foundations state bucket. Generated as `cmn-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket. | `string` | `null` | no |
@@ -41,6 +43,12 @@ Pin an exact version. New versions are published as immutable GitHub releases wi
 | ---- | ----------- |
 | project\_id | ID of the bootstrap project. |
 | state\_bucket | Name of the foundations state bucket. |
+| tf\_bootstrap\_email | Email of the `tf-bootstrap` service account, applying the Cloud Foundations configurations. |
+| tf\_bootstrap\_organization\_roles | Organisation roles of `tf-bootstrap`, which the authoritative organisation IAM policy of cf-organization must keep. |
+| tf\_environment\_emails | Emails of the `tf-<short name>` deployer service accounts, by environment folder name. |
+| tf\_environment\_state\_buckets | Names of the deployers' state buckets, by environment folder name. |
+| tf\_plan\_email | Email of the `tf-plan` service account, planning the Cloud Foundations configurations. |
+| tf\_plan\_organization\_roles | Organisation roles of `tf-plan`, which the authoritative organisation IAM policy of cf-organization must keep. |
 <!-- markdownlint-restore -->
 <!-- END_TF_DOCS -->
 

@@ -1,6 +1,9 @@
 locals {
-  project_id        = coalesce(var.project_id, "cmn-cf-bootstrap-${random_id.suffix.hex}")
-  state_bucket_name = coalesce(var.state_bucket_name, "cmn-cf-bootstrap-terraform-state-${random_id.suffix.hex}")
+  project_id = coalesce(var.project_id, "cmn-cf-bootstrap-${random_id.suffix.hex}")
+  state_buckets = merge(
+    { foundations = coalesce(var.state_bucket_name, "cmn-cf-bootstrap-terraform-state-${random_id.suffix.hex}") },
+    { for environment, short_name in var.environments : environment => "${short_name}-cf-terraform-state-${random_id.suffix.hex}" },
+  )
 
   # The deployer service accounts live in this project, so the APIs they call at the organisation level are enabled here too
   apis = toset([
