@@ -157,6 +157,40 @@ run "environment_deployers" {
   }
 }
 
+run "billing" {
+  command = plan
+
+  variables {
+    billing_admins_group = "gcp-billing-admins@example.com"
+  }
+
+  assert {
+    condition = (
+      google_billing_account_iam_member.tf_bootstrap.role == "roles/billing.admin" &&
+      google_billing_account_iam_member.tf_plan.role == "roles/billing.viewer" &&
+      google_billing_account_iam_member.billing_admins[0].member == "group:gcp-billing-admins@example.com" &&
+      google_billing_account_iam_member.billing_admins[0].role == "roles/billing.admin"
+    )
+    error_message = "tf-bootstrap and the billing admins group must administer, and tf-plan only view, the billing account."
+  }
+
+  assert {
+    condition = alltrue([for binding in [google_billing_account_iam_member.tf_bootstrap, google_billing_account_iam_member.tf_plan, google_billing_account_iam_member.billing_admins[0]] :
+      binding.billing_account_id == "012345-6789AB-CDEF01"
+    ])
+    error_message = "The billing roles must be granted on the billing account."
+  }
+}
+
+run "billing_without_admins_group" {
+  command = plan
+
+  assert {
+    condition     = length(google_billing_account_iam_member.billing_admins) == 0
+    error_message = "No group must be granted without billing_admins_group."
+  }
+}
+
 run "apis" {
   command = plan
 
@@ -239,6 +273,16 @@ run "foundations_as_environment" {
   }
 
   expect_failures = [var.environments]
+}
+
+run "invalid_billing_admins_group" {
+  command = plan
+
+  variables {
+    billing_admins_group = "gcp-billing-admins"
+  }
+
+  expect_failures = [var.billing_admins_group]
 }
 
 run "invalid_project_id" {

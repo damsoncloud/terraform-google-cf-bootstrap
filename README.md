@@ -30,6 +30,7 @@ Pin an exact version. New versions are published as immutable GitHub releases wi
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | billing\_account | ID of the billing account of the bootstrap project, e.g. `012345-6789AB-CDEF01`. | `string` | n/a | yes |
+| billing\_admins\_group | Email of the group administering the billing account, e.g. `gcp-billing-admins@example.com`. No group is granted when null. | `string` | `null` | no |
 | environments | Short names of the environments, by environment folder name, e.g. the cf-hierarchy environments. Each environment gets a `tf-<short name>` deployer service account with its own state bucket. | `map(string)` | ```{ "certification": "cert", "common": "cmn", "development": "dev", "production": "prod" }``` | no |
 | folder\_id | The `common` folder holding the bootstrap project, as `folders/<id>`, e.g. the `folders["common"]` output of cf-hierarchy. | `string` | n/a | yes |
 | organization\_id | ID of the organisation, where the deployer service accounts are granted their roles. | `string` | n/a | yes |

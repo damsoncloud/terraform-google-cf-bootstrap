@@ -28,6 +28,17 @@ variable "billing_account" {
   }
 }
 
+variable "billing_admins_group" {
+  description = "Email of the group administering the billing account, e.g. `gcp-billing-admins@example.com`. No group is granted when null."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.billing_admins_group == null || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.billing_admins_group))
+    error_message = "The billing_admins_group must be an email address."
+  }
+}
+
 variable "project_id" {
   description = "ID of the bootstrap project. Generated as `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project."
   type        = string
