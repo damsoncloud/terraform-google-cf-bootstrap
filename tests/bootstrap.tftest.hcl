@@ -34,6 +34,11 @@ run "generated_names" {
   }
 
   assert {
+    condition     = output.project_number == google_project.bootstrap.number
+    error_message = "The project's number must be returned."
+  }
+
+  assert {
     condition     = google_storage_bucket.state["foundations"].name == "cmn-cf-bootstrap-terraform-state-a1b2" && output.state_bucket == "cmn-cf-bootstrap-terraform-state-a1b2"
     error_message = "The state bucket name must be generated as cmn-cf-bootstrap-terraform-state-<suffix>."
   }

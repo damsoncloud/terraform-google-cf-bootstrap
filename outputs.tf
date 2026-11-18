@@ -3,6 +3,11 @@ output "project_id" {
   value       = google_project.bootstrap.project_id
 }
 
+output "project_number" {
+  description = "Number of the bootstrap project, e.g. for the membership of the perimeter of cf-organization's vpc-service-controls submodule."
+  value       = google_project.bootstrap.number
+}
+
 output "state_bucket" {
   description = "Name of the foundations state bucket."
   value       = google_storage_bucket.state["foundations"].name

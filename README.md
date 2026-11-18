@@ -50,6 +50,7 @@ See [`examples/basic`](examples/basic) for the module applied with cf-hierarchy,
 | ---- | ----------- |
 | github\_workload\_identity\_provider | Name of the GitHub Actions Workload Identity Federation provider, for `google-github-actions/auth`; null without the GitHub integration. |
 | project\_id | ID of the bootstrap project. |
+| project\_number | Number of the bootstrap project, e.g. for the membership of the perimeter of cf-organization's vpc-service-controls submodule. |
 | state\_bucket | Name of the foundations state bucket. |
 | tf\_bootstrap\_email | Email of the `tf-bootstrap` service account, applying the Cloud Foundations configurations. |
 | tf\_bootstrap\_organization\_roles | Organisation roles of `tf-bootstrap`, which the authoritative organisation IAM policy of cf-organization must keep. |
