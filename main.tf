@@ -23,6 +23,7 @@ locals {
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "logging.googleapis.com",
+    "modelarmor.googleapis.com",
     "monitoring.googleapis.com",
     "orgpolicy.googleapis.com",
     "pubsub.googleapis.com",

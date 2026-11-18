@@ -231,6 +231,11 @@ run "apis" {
   }
 
   assert {
+    condition     = contains(keys(google_project_service.bootstrap), "modelarmor.googleapis.com")
+    error_message = "The Model Armour API must be enabled, to set the organisation's floor setting."
+  }
+
+  assert {
     condition     = alltrue([for service in google_project_service.bootstrap : !service.disable_on_destroy])
     error_message = "The APIs must not be disabled when removed from the configuration."
   }
