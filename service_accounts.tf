@@ -3,13 +3,16 @@ locals {
   tf_bootstrap_organization_roles = toset([
     # keep-sorted start
     "roles/accesscontextmanager.policyAdmin",
+    "roles/billing.projectManager",
     "roles/cloudasset.viewer",
+    "roles/compute.networkAdmin",
     "roles/compute.xpnAdmin",
     "roles/iam.denyAdmin",
     "roles/iam.securityAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/logging.configWriter",
     "roles/modelarmor.floorSettingsAdmin",
+    "roles/monitoring.metricsScopesAdmin",
     "roles/orgpolicy.policyAdmin",
     "roles/resourcemanager.folderAdmin",
     "roles/resourcemanager.organizationViewer",
@@ -33,7 +36,6 @@ locals {
   # tf-bootstrap manages the bootstrap project itself once the installer's grants are removed
   tf_bootstrap_project_roles = toset([
     # keep-sorted start
-    "roles/billing.projectManager",
     "roles/iam.workloadIdentityPoolAdmin",
     "roles/serviceusage.serviceUsageAdmin",
     "roles/storage.admin",
