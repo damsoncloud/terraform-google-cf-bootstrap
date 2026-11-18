@@ -8,13 +8,37 @@ variable "organization_id" {
   }
 }
 
-variable "folder_id" {
-  description = "The `common` folder holding the bootstrap project, as `folders/<id>`, e.g. the `folders[\"common\"]` output of cf-hierarchy."
-  type        = string
+variable "folders" {
+  description = "The folders by folder name, e.g. the `folders` output of cf-hierarchy: `id`, the resource name (`folders/<id>`); `short_name`, the environment's short name, null for folders other than environments; `common`, whether it is the common environment. The bootstrap project is created in the common environment's folder and its generated names start with its short name; each environment gets a `tf-<short name>` deployer service account with its own state bucket."
+  type = map(object({
+    id         = string
+    short_name = optional(string)
+    common     = optional(bool, false)
+  }))
 
   validation {
-    condition     = can(regex("^folders/[0-9]+$", var.folder_id))
-    error_message = "The folder_id must be `folders/<id>`."
+    condition     = alltrue([for folder in values(var.folders) : can(regex("^folders/[0-9]+$", folder.id))])
+    error_message = "Each folder's id must be `folders/<id>`."
+  }
+
+  validation {
+    condition     = length([for folder in values(var.folders) : folder if folder.common && folder.short_name != null]) == 1 && length([for folder in values(var.folders) : folder if folder.common]) == 1
+    error_message = "Exactly one folder must be the common environment, with a short name."
+  }
+
+  validation {
+    condition     = alltrue([for folder in values(var.folders) : folder.short_name == null || can(regex("^[a-z][a-z0-9-]{1,25}[a-z0-9]$", folder.short_name))])
+    error_message = "Each short name must be 3-27 lowercase letters, digits or hyphens, starting with a letter and not ending with a hyphen."
+  }
+
+  validation {
+    condition     = length(distinct(compact([for folder in values(var.folders) : folder.short_name]))) == length(compact([for folder in values(var.folders) : folder.short_name]))
+    error_message = "The short names must be unique."
+  }
+
+  validation {
+    condition     = try(var.folders["foundations"].short_name, null) == null
+    error_message = "No environment may be named foundations, the key of the foundations state bucket."
   }
 }
 
@@ -40,7 +64,7 @@ variable "billing_admins_group" {
 }
 
 variable "project_id" {
-  description = "ID of the bootstrap project. Generated as `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project."
+  description = "ID of the bootstrap project. Generated as `<common short name>-cf-bootstrap-<suffix>`, e.g. `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project."
   type        = string
   default     = null
 
@@ -51,7 +75,7 @@ variable "project_id" {
 }
 
 variable "state_bucket_name" {
-  description = "Name of the foundations state bucket. Generated as `cmn-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket."
+  description = "Name of the foundations state bucket. Generated as `<common short name>-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket."
   type        = string
   default     = null
 
@@ -65,32 +89,6 @@ variable "region" {
   description = "Region of the regional resources, e.g. the state buckets."
   type        = string
   default     = "europe-west4"
-}
-
-variable "environments" {
-  description = "Short names of the environments, by environment folder name, e.g. the cf-hierarchy environments. Each environment gets a `tf-<short name>` deployer service account with its own state bucket."
-  type        = map(string)
-  default = {
-    development   = "dev"
-    certification = "cert"
-    production    = "prod"
-    common        = "cmn"
-  }
-
-  validation {
-    condition     = !contains(keys(var.environments), "foundations")
-    error_message = "The environments must not contain foundations, the key of the foundations state bucket."
-  }
-
-  validation {
-    condition     = alltrue([for short_name in values(var.environments) : can(regex("^[a-z][a-z0-9-]{1,25}[a-z0-9]$", short_name))])
-    error_message = "Each short name must be 3-27 lowercase letters, digits or hyphens, starting with a letter and not ending with a hyphen."
-  }
-
-  validation {
-    condition     = length(values(var.environments)) == length(distinct(values(var.environments)))
-    error_message = "The short names must be unique."
-  }
 }
 
 variable "github" {

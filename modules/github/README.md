@@ -17,6 +17,7 @@ It is called by cf-bootstrap when its `github` input is set.
 | ---- | ----------- | ---- | ------- | :------: |
 | default\_branch\_name | Default branch of the Cloud Foundations repositories, the only ref impersonating `tf-bootstrap`. | `string` | `"main"` | no |
 | foundation\_repository\_ids | IDs of the Cloud Foundations repositories, impersonating `tf-plan` from any ref and `tf-bootstrap` from the default branch. | `list(string)` | `[]` | no |
+| name\_prefix | Prefix of the pool's and provider's IDs, `<prefix>-gh` and `<prefix>-gha`, e.g. `cmn-cf-bootstrap`. | `string` | n/a | yes |
 | project\_id | ID of the project holding the Workload Identity Federation pool, e.g. the bootstrap project. | `string` | n/a | yes |
 | repository\_owner\_id | ID of the GitHub organisation, the only one trusted. | `string` | n/a | yes |
 | tf\_bootstrap\_service\_account | Resource name of the `tf-bootstrap` service account, `projects/<project>/serviceAccounts/<email>`. | `string` | n/a | yes |

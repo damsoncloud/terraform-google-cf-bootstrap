@@ -93,7 +93,7 @@ resource "google_storage_bucket_iam_member" "foundations_state_tf_plan" {
 }
 
 resource "google_service_account" "tf_environment" {
-  for_each = var.environments
+  for_each = local.environments
 
   project      = google_project.bootstrap.project_id
   account_id   = "tf-${each.value}"
@@ -102,7 +102,7 @@ resource "google_service_account" "tf_environment" {
 }
 
 resource "google_storage_bucket_iam_member" "state_tf_environment" {
-  for_each = var.environments
+  for_each = local.environments
 
   bucket = google_storage_bucket.state[each.key].name
   role   = "roles/storage.objectUser"

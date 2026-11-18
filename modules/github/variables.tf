@@ -3,6 +3,16 @@ variable "project_id" {
   type        = string
 }
 
+variable "name_prefix" {
+  description = "Prefix of the pool's and provider's IDs, `<prefix>-gh` and `<prefix>-gha`, e.g. `cmn-cf-bootstrap`."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{2,26}[a-z0-9]$", var.name_prefix))
+    error_message = "The name_prefix must be 4-28 lowercase letters, digits or hyphens, starting with a letter and not ending with a hyphen."
+  }
+}
+
 variable "repository_owner_id" {
   description = "ID of the GitHub organisation, the only one trusted."
   type        = string

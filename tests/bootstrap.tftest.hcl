@@ -17,7 +17,13 @@ mock_provider "random" {
 
 variables {
   organization_id = "123456789012"
-  folder_id       = "folders/111111111111"
+  folders = {
+    development   = { id = "folders/100000000001", short_name = "dev" }
+    certification = { id = "folders/100000000002", short_name = "cert" }
+    production    = { id = "folders/100000000003", short_name = "prod" }
+    common        = { id = "folders/111111111111", short_name = "cmn", common = true }
+    legacy        = { id = "folders/100000000004" }
+  }
   billing_account = "012345-6789AB-CDEF01"
 }
 
@@ -244,10 +250,85 @@ run "invalid_folder_id" {
   command = plan
 
   variables {
-    folder_id = "111111111111"
+    folders = {
+      common = { id = "111111111111", short_name = "cmn", common = true }
+    }
   }
 
-  expect_failures = [var.folder_id]
+  expect_failures = [var.folders]
+}
+
+run "renamed_common_environment" {
+  variables {
+    folders = {
+      development = { id = "folders/100000000001", short_name = "dev" }
+      shared      = { id = "folders/122222222222", short_name = "shr", common = true }
+    }
+  }
+
+  assert {
+    condition     = google_project.bootstrap.project_id == "shr-cf-bootstrap-a1b2" && google_project.bootstrap.folder_id == "folders/122222222222"
+    error_message = "The project must be created in the common environment's folder, with an ID starting with its short name."
+  }
+
+  assert {
+    condition     = google_storage_bucket.state["foundations"].name == "shr-cf-bootstrap-terraform-state-a1b2"
+    error_message = "The foundations state bucket's name must start with the common environment's short name."
+  }
+
+  assert {
+    condition     = keys(google_service_account.tf_environment) == ["development", "shared"]
+    error_message = "Only the folders with a short name must get a deployer."
+  }
+}
+
+run "generated_project_id_too_long" {
+  command = plan
+
+  variables {
+    folders = {
+      common = { id = "folders/111111111111", short_name = "common-environment", common = true }
+    }
+  }
+
+  expect_failures = [google_project.bootstrap]
+}
+
+run "no_common_environment" {
+  command = plan
+
+  variables {
+    folders = {
+      development = { id = "folders/100000000001", short_name = "dev" }
+    }
+  }
+
+  expect_failures = [var.folders]
+}
+
+run "several_common_environments" {
+  command = plan
+
+  variables {
+    folders = {
+      common = { id = "folders/111111111111", short_name = "cmn", common = true }
+      shared = { id = "folders/122222222222", short_name = "shr", common = true }
+    }
+  }
+
+  expect_failures = [var.folders]
+}
+
+run "common_environment_without_short_name" {
+  command = plan
+
+  variables {
+    folders = {
+      common = { id = "folders/111111111111", common = true }
+    }
+  }
+
+  expect_failures = [var.folders]
 }
 
 run "invalid_billing_account" {
@@ -274,30 +355,40 @@ run "invalid_environment_short_name" {
   command = plan
 
   variables {
-    environments = { development = "Dev" }
+    folders = {
+      development = { id = "folders/100000000001", short_name = "Dev" }
+      common      = { id = "folders/111111111111", short_name = "cmn", common = true }
+    }
   }
 
-  expect_failures = [var.environments]
+  expect_failures = [var.folders]
 }
 
 run "duplicate_environment_short_names" {
   command = plan
 
   variables {
-    environments = { development = "dev", dev = "dev" }
+    folders = {
+      development = { id = "folders/100000000001", short_name = "dev" }
+      dev         = { id = "folders/100000000002", short_name = "dev" }
+      common      = { id = "folders/111111111111", short_name = "cmn", common = true }
+    }
   }
 
-  expect_failures = [var.environments]
+  expect_failures = [var.folders]
 }
 
 run "foundations_as_environment" {
   command = plan
 
   variables {
-    environments = { foundations = "fnd" }
+    folders = {
+      foundations = { id = "folders/100000000001", short_name = "fnd" }
+      common      = { id = "folders/111111111111", short_name = "cmn", common = true }
+    }
   }
 
-  expect_failures = [var.environments]
+  expect_failures = [var.folders]
 }
 
 run "invalid_billing_admins_group" {

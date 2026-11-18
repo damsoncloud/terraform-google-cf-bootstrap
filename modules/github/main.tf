@@ -10,14 +10,14 @@ locals {
 
 resource "google_iam_workload_identity_pool" "this" {
   project                   = var.project_id
-  workload_identity_pool_id = "cmn-cf-bootstrap-gh"
+  workload_identity_pool_id = "${var.name_prefix}-gh"
   display_name              = "GitHub Actions"
 }
 
 resource "google_iam_workload_identity_pool_provider" "this" {
   project                            = var.project_id
   workload_identity_pool_id          = google_iam_workload_identity_pool.this.workload_identity_pool_id
-  workload_identity_pool_provider_id = "cmn-cf-bootstrap-gha"
+  workload_identity_pool_provider_id = "${var.name_prefix}-gha"
   display_name                       = "GitHub Actions"
   description                        = "GitHub Actions integration with Google Cloud Platform"
 

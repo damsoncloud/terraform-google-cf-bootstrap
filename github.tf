@@ -3,6 +3,7 @@ module "github" {
   count  = var.github != null ? 1 : 0
 
   project_id                      = google_project.bootstrap.project_id
+  name_prefix                     = local.name_prefix
   repository_owner_id             = var.github.repository_owner_id
   foundation_repository_ids       = var.github.foundation_repository_ids
   workload_repository_ids         = var.github.workload_repository_ids

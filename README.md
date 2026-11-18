@@ -19,7 +19,7 @@ module "bootstrap" {
   version = "X.Y.Z"
 
   organization_id = "123456789012"
-  folder_id       = module.hierarchy.folders["common"]
+  folders         = module.hierarchy.folders
   billing_account = "012345-6789AB-CDEF01"
 }
 ```
@@ -37,13 +37,12 @@ See [`examples/basic`](examples/basic) for the module applied with cf-hierarchy,
 | ---- | ----------- | ---- | ------- | :------: |
 | billing\_account | ID of the billing account of the bootstrap project, e.g. `012345-6789AB-CDEF01`. | `string` | n/a | yes |
 | billing\_admins\_group | Email of the group administering the billing account, e.g. `gcp-billing-admins@example.com`. No group is granted when null. | `string` | `null` | no |
-| environments | Short names of the environments, by environment folder name, e.g. the cf-hierarchy environments. Each environment gets a `tf-<short name>` deployer service account with its own state bucket. | `map(string)` | ```{ "certification": "cert", "common": "cmn", "development": "dev", "production": "prod" }``` | no |
-| folder\_id | The `common` folder holding the bootstrap project, as `folders/<id>`, e.g. the `folders["common"]` output of cf-hierarchy. | `string` | n/a | yes |
+| folders | The folders by folder name, e.g. the `folders` output of cf-hierarchy: `id`, the resource name (`folders/<id>`); `short_name`, the environment's short name, null for folders other than environments; `common`, whether it is the common environment. The bootstrap project is created in the common environment's folder and its generated names start with its short name; each environment gets a `tf-<short name>` deployer service account with its own state bucket. | ```map(object({ id = string short_name = optional(string) common = optional(bool, false) }))``` | n/a | yes |
 | github | GitHub Actions integration through Workload Identity Federation; not set up when null: `repository_owner_id`, the ID of the GitHub organisation, the only one trusted; `foundation_repository_ids`, the IDs of the Cloud Foundations repositories, impersonating `tf-plan` from any ref and `tf-bootstrap` from the default branch; `workload_repository_ids`, the IDs of the workload repositories by environment folder name, impersonating the environment's `tf-<short name>` deployer from any ref; `default_branch_name`, the default branch of the Cloud Foundations repositories. | ```object({ repository_owner_id = string foundation_repository_ids = optional(list(string), []) workload_repository_ids = optional(map(list(string)), {}) default_branch_name = optional(string, "main") })``` | `null` | no |
 | organization\_id | ID of the organisation, where the deployer service accounts are granted their roles. | `string` | n/a | yes |
-| project\_id | ID of the bootstrap project. Generated as `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project. | `string` | `null` | no |
+| project\_id | ID of the bootstrap project. Generated as `<common short name>-cf-bootstrap-<suffix>`, e.g. `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project. | `string` | `null` | no |
 | region | Region of the regional resources, e.g. the state buckets. | `string` | `"europe-west4"` | no |
-| state\_bucket\_name | Name of the foundations state bucket. Generated as `cmn-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket. | `string` | `null` | no |
+| state\_bucket\_name | Name of the foundations state bucket. Generated as `<common short name>-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket. | `string` | `null` | no |
 
 ## Outputs
 

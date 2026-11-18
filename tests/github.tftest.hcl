@@ -9,6 +9,7 @@ mock_provider "google" {
 
 variables {
   project_id                   = "cmn-cf-bootstrap-a1b2"
+  name_prefix                  = "cmn-cf-bootstrap"
   repository_owner_id          = "1000"
   tf_plan_service_account      = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-plan@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
   tf_bootstrap_service_account = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-bootstrap@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
@@ -33,7 +34,12 @@ run "trust" {
 
   assert {
     condition     = google_iam_workload_identity_pool.this.project == "cmn-cf-bootstrap-a1b2" && google_iam_workload_identity_pool.this.workload_identity_pool_id == "cmn-cf-bootstrap-gh"
-    error_message = "The pool must be created in the given project, keeping the ID of the existing installations."
+    error_message = "The pool must be created in the given project, with an ID starting with the given prefix."
+  }
+
+  assert {
+    condition     = google_iam_workload_identity_pool_provider.this.workload_identity_pool_provider_id == "cmn-cf-bootstrap-gha"
+    error_message = "The provider's ID must start with the given prefix."
   }
 }
 
@@ -145,4 +151,18 @@ run "invalid_default_branch_name" {
   }
 
   expect_failures = [var.default_branch_name]
+}
+
+run "invalid_name_prefix" {
+  command = plan
+
+  module {
+    source = "./modules/github"
+  }
+
+  variables {
+    name_prefix = "common-environment-cf-bootstrap"
+  }
+
+  expect_failures = [var.name_prefix]
 }

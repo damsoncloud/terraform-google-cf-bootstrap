@@ -35,7 +35,7 @@ output "tf_environment_emails" {
 
 output "tf_environment_state_buckets" {
   description = "Names of the deployers' state buckets, by environment folder name."
-  value       = { for environment in keys(var.environments) : environment => google_storage_bucket.state[environment].name }
+  value       = { for environment in keys(local.environments) : environment => google_storage_bucket.state[environment].name }
 }
 
 output "github_workload_identity_provider" {
