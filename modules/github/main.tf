@@ -8,15 +8,15 @@ locals {
   }
 }
 
-resource "google_iam_workload_identity_pool" "this" {
+resource "google_iam_workload_identity_pool" "github" {
   project                   = var.project_id
   workload_identity_pool_id = "${var.name_prefix}-gh"
   display_name              = "GitHub Actions"
 }
 
-resource "google_iam_workload_identity_pool_provider" "this" {
+resource "google_iam_workload_identity_pool_provider" "github" {
   project                            = var.project_id
-  workload_identity_pool_id          = google_iam_workload_identity_pool.this.workload_identity_pool_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
   workload_identity_pool_provider_id = "${var.name_prefix}-gha"
   display_name                       = "GitHub Actions"
   description                        = "GitHub Actions integration with Google Cloud Platform"
@@ -41,7 +41,7 @@ resource "google_service_account_iam_member" "tf_plan" {
 
   service_account_id = var.tf_plan_service_account
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.this.name}/attribute.repository_id/${each.key}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository_id/${each.key}"
 }
 
 resource "google_service_account_iam_member" "tf_bootstrap" {
@@ -49,7 +49,7 @@ resource "google_service_account_iam_member" "tf_bootstrap" {
 
   service_account_id = var.tf_bootstrap_service_account
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.this.name}/attribute.repository_id_ref/${each.key}@refs/heads/${var.default_branch_name}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository_id_ref/${each.key}@refs/heads/${var.default_branch_name}"
 }
 
 resource "google_service_account_iam_member" "tf_environment" {
@@ -57,5 +57,5 @@ resource "google_service_account_iam_member" "tf_environment" {
 
   service_account_id = var.tf_environment_service_accounts[each.value.environment]
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.this.name}/attribute.repository_id/${each.value.repository_id}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository_id/${each.value.repository_id}"
 }

@@ -28,17 +28,17 @@ run "trust" {
   }
 
   assert {
-    condition     = google_iam_workload_identity_pool_provider.this.attribute_condition == "assertion.repository_owner_id == '1000'"
+    condition     = google_iam_workload_identity_pool_provider.github.attribute_condition == "assertion.repository_owner_id == '1000'"
     error_message = "Only tokens of the GitHub organisation, by its ID, must be accepted."
   }
 
   assert {
-    condition     = google_iam_workload_identity_pool.this.project == "cmn-cf-bootstrap-a1b2" && google_iam_workload_identity_pool.this.workload_identity_pool_id == "cmn-cf-bootstrap-gh"
+    condition     = google_iam_workload_identity_pool.github.project == "cmn-cf-bootstrap-a1b2" && google_iam_workload_identity_pool.github.workload_identity_pool_id == "cmn-cf-bootstrap-gh"
     error_message = "The pool must be created in the given project, with an ID starting with the given prefix."
   }
 
   assert {
-    condition     = google_iam_workload_identity_pool_provider.this.workload_identity_pool_provider_id == "cmn-cf-bootstrap-gha"
+    condition     = google_iam_workload_identity_pool_provider.github.workload_identity_pool_provider_id == "cmn-cf-bootstrap-gha"
     error_message = "The provider's ID must start with the given prefix."
   }
 }
@@ -74,7 +74,7 @@ run "impersonation" {
   }
 
   assert {
-    condition     = output.workload_identity_provider == google_iam_workload_identity_pool_provider.this.name
+    condition     = output.workload_identity_provider == google_iam_workload_identity_pool_provider.github.name
     error_message = "The provider name must be returned."
   }
 }
