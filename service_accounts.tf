@@ -7,6 +7,7 @@ locals {
     "roles/cloudasset.viewer",
     "roles/compute.networkAdmin",
     "roles/compute.xpnAdmin",
+    "roles/eventarc.admin",
     "roles/iam.denyAdmin",
     "roles/iam.securityAdmin",
     "roles/iam.serviceAccountAdmin",
@@ -14,13 +15,16 @@ locals {
     "roles/modelarmor.floorSettingsAdmin",
     "roles/monitoring.metricsScopesAdmin",
     "roles/orgpolicy.policyAdmin",
+    "roles/pubsub.editor",
     "roles/resourcemanager.folderAdmin",
     "roles/resourcemanager.organizationViewer",
     "roles/resourcemanager.projectCreator",
     "roles/resourcemanager.projectMover",
     "roles/resourcemanager.tagAdmin",
     "roles/resourcemanager.tagUser",
+    "roles/run.admin",
     "roles/securitycenter.notificationConfigEditor",
+    "roles/workflows.editor",
     # keep-sorted end
   ])
 
