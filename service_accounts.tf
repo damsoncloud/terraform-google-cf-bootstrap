@@ -9,6 +9,7 @@ locals {
     "roles/compute.xpnAdmin",
     "roles/eventarc.admin",
     "roles/iam.denyAdmin",
+    "roles/iam.organizationRoleAdmin",
     "roles/iam.securityAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/logging.configWriter",
