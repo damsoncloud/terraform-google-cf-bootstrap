@@ -34,7 +34,7 @@ locals {
     "roles/accesscontextmanager.policyReader",
     "roles/iam.securityReviewer",
     "roles/modelarmor.floorSettingsViewer",
-    "roles/viewer",
+    "roles/reader",
     # keep-sorted end
   ])
 
