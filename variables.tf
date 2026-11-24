@@ -9,7 +9,14 @@ variable "organization_id" {
 }
 
 variable "folders" {
-  description = "The folders by folder name, e.g. the `folders` output of cf-hierarchy: `id`, the resource name (`folders/<id>`); `short_name`, the environment's short name, null for folders other than environments; `common`, whether it is the common environment. The bootstrap project is created in the common environment's folder and its generated names start with its short name; each environment gets a `tf-<short name>` deployer service account with its own state bucket."
+  description = <<-EOT
+  The folders by folder name, e.g. the `folders` output of cf-hierarchy:
+    `id`, the resource name (`folders/<id>`);
+    `short_name`, the environment's short name, null for folders other than environments;
+    `common`, whether it is the common environment.
+  The bootstrap project is created in the common environment's folder and its generated names start with its short name;
+  each environment gets a `tf-<short name>` deployer service account with its own state bucket.
+  EOT
   type = map(object({
     id         = string
     short_name = optional(string)
@@ -64,7 +71,11 @@ variable "billing_admins_group" {
 }
 
 variable "project_id" {
-  description = "ID of the bootstrap project. Generated as `<common short name>-cf-bootstrap-<suffix>`, e.g. `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null; set it to keep the ID of an existing project."
+  description = <<-EOT
+  ID of the bootstrap project.
+  Generated as `<common short name>-cf-bootstrap-<suffix>`, e.g. `cmn-cf-bootstrap-<suffix>`, with a random 4 hexadecimal characters suffix, when null;
+  set it to keep the ID of an existing project.
+  EOT
   type        = string
   default     = null
 
@@ -75,7 +86,10 @@ variable "project_id" {
 }
 
 variable "state_bucket_name" {
-  description = "Name of the foundations state bucket. Generated as `<common short name>-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket."
+  description = <<-EOT
+  Name of the foundations state bucket.
+  Generated as `<common short name>-cf-bootstrap-terraform-state-<suffix>`, with the suffix of a generated project ID, when null; set it to keep an existing bucket.
+  EOT
   type        = string
   default     = null
 
@@ -93,7 +107,7 @@ variable "region" {
 
 variable "github" {
   description = <<-EOT
-    GitHub Actions integration through Workload Identity Federation; not set up when null:
+  GitHub Actions integration through Workload Identity Federation; not set up when null:
     `repository_owner_id`, the ID of the GitHub organisation, the only one trusted;
     `foundation_repository_ids`, the IDs of the Cloud Foundations repositories, impersonating `tf-plan` from any ref and `tf-bootstrap` from the default branch;
     `workload_repository_ids`, the IDs of the workload repositories by environment folder name, impersonating the environment's `tf-<short name>` deployer from any ref;
