@@ -227,6 +227,166 @@ run "with_github" {
   }
 }
 
+run "additional_organizations" {
+  variables {
+    billing_admins_group = "gcp-billing-admins@example.com"
+    additional_organizations = {
+      net = {
+        organization_id = "222222222222"
+        folders = {
+          development = { id = "folders/200000000001", short_name = "dev" }
+          common      = { id = "folders/222222222222", short_name = "cmn", common = true }
+          legacy      = { id = "folders/200000000002" }
+        }
+        billing_account      = "112345-6789AB-CDEF01"
+        billing_admins_group = "gcp-billing-admins@example.net"
+      }
+      legal = {
+        organization_id = "333333333333"
+        folders = {
+          production = { id = "folders/300000000001", short_name = "prod" }
+        }
+        billing_admins_group = "gcp-billing-admins@example.com"
+      }
+    }
+  }
+
+  assert {
+    condition = { for key, service_account in google_service_account.tf_environment : key => service_account.account_id } == {
+      certification      = "tf-cert"
+      common             = "tf-cmn"
+      development        = "tf-dev"
+      production         = "tf-prod"
+      "net/development"  = "tf-dev-net"
+      "net/common"       = "tf-cmn-net"
+      "legal/production" = "tf-prod-legal"
+    }
+    error_message = "Each environment of the further organisations must have a tf-<short name>-<key> deployer, keeping the organisation's deployers."
+  }
+
+  assert {
+    condition = output.additional_organizations == {
+      net = {
+        tf_environment_emails        = { common = google_service_account.tf_environment["net/common"].email, development = google_service_account.tf_environment["net/development"].email }
+        tf_environment_state_buckets = { common = "cmn-net-cf-terraform-state-a1b2", development = "dev-net-cf-terraform-state-a1b2" }
+      }
+      legal = {
+        tf_environment_emails        = { production = google_service_account.tf_environment["legal/production"].email }
+        tf_environment_state_buckets = { production = "prod-legal-cf-terraform-state-a1b2" }
+      }
+    }
+    error_message = "The further organisations' deployers and state buckets must be returned by environment folder name."
+  }
+
+  assert {
+    condition     = keys(output.tf_environment_emails) == ["certification", "common", "development", "production"] && keys(output.tf_environment_state_buckets) == keys(output.tf_environment_emails)
+    error_message = "The organisation's outputs must only return its own deployers."
+  }
+
+  assert {
+    condition = (
+      length(google_organization_iam_member.tf_bootstrap_additional_organizations) == 2 * length(google_organization_iam_member.tf_bootstrap) &&
+      length(google_organization_iam_member.tf_plan_additional_organizations) == 2 * length(google_organization_iam_member.tf_plan) &&
+      alltrue([for role, binding in google_organization_iam_member.tf_bootstrap : google_organization_iam_member.tf_bootstrap_additional_organizations["net/${role}"].org_id == "222222222222"]) &&
+      alltrue([for role, binding in google_organization_iam_member.tf_plan : google_organization_iam_member.tf_plan_additional_organizations["legal/${role}"].org_id == "333333333333"])
+    )
+    error_message = "tf-bootstrap and tf-plan must be granted their organisation roles in each further organisation."
+  }
+
+  assert {
+    condition = (
+      keys(google_billing_account_iam_member.tf_bootstrap_additional_organizations) == ["112345-6789AB-CDEF01"] &&
+      google_billing_account_iam_member.tf_bootstrap_additional_organizations["112345-6789AB-CDEF01"].role == "roles/billing.admin" &&
+      google_billing_account_iam_member.tf_plan_additional_organizations["112345-6789AB-CDEF01"].role == "roles/billing.viewer"
+    )
+    error_message = "tf-bootstrap must administer and tf-plan view the further billing accounts, once each."
+  }
+
+  assert {
+    condition = (
+      keys(google_billing_account_iam_member.billing_admins_additional_organizations) == ["112345-6789AB-CDEF01/gcp-billing-admins@example.net"] &&
+      google_billing_account_iam_member.billing_admins_additional_organizations["112345-6789AB-CDEF01/gcp-billing-admins@example.net"].member == "group:gcp-billing-admins@example.net"
+    )
+    error_message = "The further billing admins groups must administer their billing account, without repeating the organisation's grant."
+  }
+}
+
+run "additional_organization_ids" {
+  command = plan
+
+  variables {
+    additional_organizations = {
+      net = { organization_id = "123456789012", folders = {} }
+    }
+  }
+
+  expect_failures = [var.additional_organizations]
+}
+
+run "invalid_additional_organization_key" {
+  command = plan
+
+  variables {
+    additional_organizations = {
+      "Net" = { organization_id = "222222222222", folders = {} }
+    }
+  }
+
+  expect_failures = [var.additional_organizations]
+}
+
+run "additional_organization_deployer_id_too_long" {
+  command = plan
+
+  variables {
+    additional_organizations = {
+      longerkey = { organization_id = "222222222222", folders = { development = { id = "folders/200000000001", short_name = "development-sandbox" } } }
+    }
+  }
+
+  expect_failures = [var.additional_organizations]
+}
+
+run "duplicate_deployer_names" {
+  command = plan
+
+  variables {
+    folders = {
+      development = { id = "folders/100000000001", short_name = "dev-net" }
+      common      = { id = "folders/111111111111", short_name = "cmn", common = true }
+    }
+    additional_organizations = {
+      net = { organization_id = "222222222222", folders = { development = { id = "folders/200000000001", short_name = "dev" } } }
+    }
+  }
+
+  expect_failures = [var.additional_organizations]
+}
+
+run "invalid_additional_organization_folder" {
+  command = plan
+
+  variables {
+    additional_organizations = {
+      net = { organization_id = "222222222222", folders = { development = { id = "200000000001", short_name = "dev" } } }
+    }
+  }
+
+  expect_failures = [var.additional_organizations]
+}
+
+run "invalid_additional_billing_account" {
+  command = plan
+
+  variables {
+    additional_organizations = {
+      net = { organization_id = "222222222222", folders = {}, billing_account = "invalid" }
+    }
+  }
+
+  expect_failures = [var.additional_organizations]
+}
+
 run "apis" {
   command = plan
 

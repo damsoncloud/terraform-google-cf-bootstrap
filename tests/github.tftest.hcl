@@ -14,10 +14,11 @@ variables {
   tf_plan_service_account      = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-plan@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
   tf_bootstrap_service_account = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-bootstrap@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
   tf_environment_service_accounts = {
-    production = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-prod@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
+    production       = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-prod@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
+    "net/production" = "projects/cmn-cf-bootstrap-a1b2/serviceAccounts/tf-prod-net@cmn-cf-bootstrap-a1b2.iam.gserviceaccount.com"
   }
   foundation_repository_ids = ["2001", "2002"]
-  workload_repository_ids   = { production = ["3001"] }
+  workload_repository_ids   = { production = ["3001"], "net/production" = ["3002"] }
 }
 
 run "trust" {
@@ -66,7 +67,8 @@ run "impersonation" {
 
   assert {
     condition = (
-      keys(google_service_account_iam_member.tf_environment) == ["production/3001"] &&
+      keys(google_service_account_iam_member.tf_environment) == ["net/production/3002", "production/3001"] &&
+      google_service_account_iam_member.tf_environment["net/production/3002"].service_account_id == var.tf_environment_service_accounts["net/production"] &&
       google_service_account_iam_member.tf_environment["production/3001"].service_account_id == var.tf_environment_service_accounts["production"] &&
       endswith(google_service_account_iam_member.tf_environment["production/3001"].member, "/attribute.repository_id/3001")
     )
