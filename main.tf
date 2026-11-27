@@ -4,10 +4,22 @@ locals {
   common_folder = one([for folder in values(var.folders) : folder if folder.common])
   name_prefix   = "${local.common_folder.short_name}-cf-bootstrap"
 
+  # The environment deployers, keyed by folder name in the organisation and by `<key>/<folder name>` in the further organisations,
+  # whose names get the organisation's key as a suffix
+  deployers = merge(
+    { for environment, short_name in local.environments : environment => { environment = environment, organization = null, name = short_name } },
+    merge([
+      for key, organization in var.additional_organizations : {
+        for environment, folder in organization.folders : "${key}/${environment}" => { environment = environment, organization = key, name = "${folder.short_name}-${key}" }
+        if folder.short_name != null
+      }
+    ]...),
+  )
+
   project_id = coalesce(var.project_id, "${local.name_prefix}-${random_id.suffix.hex}")
   state_buckets = merge(
     { foundations = coalesce(var.state_bucket_name, "${local.name_prefix}-terraform-state-${random_id.suffix.hex}") },
-    { for environment, short_name in local.environments : environment => "${short_name}-cf-terraform-state-${random_id.suffix.hex}" },
+    { for key, deployer in local.deployers : key => "${deployer.name}-cf-terraform-state-${random_id.suffix.hex}" },
   )
 
   # The deployer service accounts live in this project, so the APIs they call at the organisation level are enabled here too

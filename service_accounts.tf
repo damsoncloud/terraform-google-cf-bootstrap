@@ -78,6 +78,32 @@ resource "google_organization_iam_member" "tf_plan" {
   member = google_service_account.tf_plan.member
 }
 
+resource "google_organization_iam_member" "tf_bootstrap_additional_organizations" {
+  for_each = {
+    for pair in setproduct(keys(var.additional_organizations), local.tf_bootstrap_organization_roles) : "${pair[0]}/${pair[1]}" => {
+      org_id = var.additional_organizations[pair[0]].organization_id
+      role   = pair[1]
+    }
+  }
+
+  org_id = each.value.org_id
+  role   = each.value.role
+  member = google_service_account.tf_bootstrap.member
+}
+
+resource "google_organization_iam_member" "tf_plan_additional_organizations" {
+  for_each = {
+    for pair in setproduct(keys(var.additional_organizations), local.tf_plan_organization_roles) : "${pair[0]}/${pair[1]}" => {
+      org_id = var.additional_organizations[pair[0]].organization_id
+      role   = pair[1]
+    }
+  }
+
+  org_id = each.value.org_id
+  role   = each.value.role
+  member = google_service_account.tf_plan.member
+}
+
 resource "google_project_iam_member" "tf_bootstrap" {
   for_each = local.tf_bootstrap_project_roles
 
@@ -100,16 +126,16 @@ resource "google_storage_bucket_iam_member" "foundations_state_tf_plan" {
 }
 
 resource "google_service_account" "tf_environment" {
-  for_each = local.environments
+  for_each = local.deployers
 
   project      = google_project.bootstrap.project_id
-  account_id   = "tf-${each.value}"
-  display_name = "Terraform deployer for the ${each.value} GCP environment"
-  description  = "Applies the workload configurations of the ${each.key} environment."
+  account_id   = "tf-${each.value.name}"
+  display_name = "Terraform deployer for the ${each.value.name} GCP environment"
+  description  = "Applies the workload configurations of the ${each.value.environment} environment${each.value.organization != null ? " of the ${each.value.organization} organisation" : ""}."
 }
 
 resource "google_storage_bucket_iam_member" "state_tf_environment" {
-  for_each = local.environments
+  for_each = local.deployers
 
   bucket = google_storage_bucket.state[each.key].name
   role   = "roles/storage.objectUser"

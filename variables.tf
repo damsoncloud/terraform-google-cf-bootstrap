@@ -99,6 +99,77 @@ variable "state_bucket_name" {
   }
 }
 
+variable "additional_organizations" {
+  description = <<-EOT
+  Further organisations sharing the bootstrap project, by a key of 1-10 lowercase letters, digits or hyphens, suffixing the names of their deployers, e.g. `net`:
+    `organization_id`, the ID of the organisation, where `tf-bootstrap` and `tf-plan` are granted their organisation roles too;
+    `folders`, as the `folders` input, e.g. the `folders` output of the organisation's cf-hierarchy;
+    each environment gets a `tf-<short name>-<key>` deployer service account with its own state bucket;
+    `billing_account`, the ID of the billing account of the organisation's projects, administered by `tf-bootstrap` and viewed by `tf-plan`; the bootstrap project's when null;
+    `billing_admins_group`, the email of the group administering that billing account; no group is granted when null.
+  EOT
+  type = map(object({
+    organization_id = string
+    folders = map(object({
+      id         = string
+      short_name = optional(string)
+      common     = optional(bool, false)
+    }))
+    billing_account      = optional(string)
+    billing_admins_group = optional(string)
+  }))
+  default = {}
+
+  validation {
+    condition     = alltrue([for key in keys(var.additional_organizations) : can(regex("^[a-z]([a-z0-9-]{0,8}[a-z0-9])?$", key))])
+    error_message = "Each organisation key must be 1-10 lowercase letters, digits or hyphens, starting with a letter and not ending with a hyphen."
+  }
+
+  validation {
+    condition = alltrue([for organization in values(var.additional_organizations) : can(regex("^[0-9]+$", organization.organization_id))]) && length(distinct(concat(
+      [var.organization_id], [for organization in values(var.additional_organizations) : organization.organization_id]
+    ))) == length(var.additional_organizations) + 1
+    error_message = "Each organization_id must be the numeric ID of an organisation other than organization_id and the other further organisations."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for organization in values(var.additional_organizations) : [
+        for folder in values(organization.folders) : can(regex("^folders/[0-9]+$", folder.id)) && (folder.short_name == null || can(regex("^[a-z][a-z0-9-]{1,25}[a-z0-9]$", folder.short_name)))
+      ]
+    ]))
+    error_message = "Each folder's id must be `folders/<id>`, and each short name 3-27 lowercase letters, digits or hyphens, starting with a letter and not ending with a hyphen."
+  }
+
+  # The deployers' service account IDs are limited to 30 characters and must not collide with each other
+  validation {
+    condition = alltrue(flatten([
+      for key, organization in var.additional_organizations : [for folder in values(organization.folders) : length("tf-${folder.short_name}-${key}") <= 30 if folder.short_name != null]
+    ]))
+    error_message = "Each deployer's service account ID, `tf-<short name>-<key>`, must not exceed 30 characters: shorten the organisation's key or the short name."
+  }
+
+  validation {
+    condition = length(distinct(concat(
+      compact([for folder in values(var.folders) : folder.short_name]),
+      flatten([for key, organization in var.additional_organizations : [for folder in values(organization.folders) : "${folder.short_name}-${key}" if folder.short_name != null]]),
+      ))) == length(compact([for folder in values(var.folders) : folder.short_name])) + length(flatten([
+      for organization in values(var.additional_organizations) : compact([for folder in values(organization.folders) : folder.short_name])
+    ]))
+    error_message = "The deployers' names, `<short name>` in the organisation and `<short name>-<key>` in the further organisations, must be unique."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for organization in values(var.additional_organizations) : [
+        organization.billing_account == null || can(regex("^[0-9A-F]{6}-[0-9A-F]{6}-[0-9A-F]{6}$", organization.billing_account)),
+        organization.billing_admins_group == null || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", organization.billing_admins_group)),
+      ]
+    ]))
+    error_message = "Each billing_account must be a billing account ID, e.g. `012345-6789AB-CDEF01`, and each billing_admins_group an email address."
+  }
+}
+
 variable "region" {
   description = "Region of the regional resources, e.g. the state buckets."
   type        = string
@@ -110,7 +181,8 @@ variable "github" {
   GitHub Actions integration through Workload Identity Federation; not set up when null:
     `repository_owner_id`, the ID of the GitHub organisation, the only one trusted;
     `foundation_repository_ids`, the IDs of the Cloud Foundations repositories, impersonating `tf-plan` from any ref and `tf-bootstrap` from the default branch;
-    `workload_repository_ids`, the IDs of the workload repositories by environment folder name, impersonating the environment's `tf-<short name>` deployer from any ref;
+    `workload_repository_ids`, the IDs of the workload repositories by environment folder name, or `<key>/<folder name>` in the further organisations,
+      impersonating the environment's deployer from any ref;
     `default_branch_name`, the default branch of the Cloud Foundations repositories.
   EOT
   type = object({

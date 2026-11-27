@@ -35,12 +35,26 @@ output "tf_plan_organization_roles" {
 
 output "tf_environment_emails" {
   description = "Emails of the `tf-<short name>` deployer service accounts, by environment folder name."
-  value       = { for environment, service_account in google_service_account.tf_environment : environment => service_account.email }
+  value       = { for environment in keys(local.environments) : environment => google_service_account.tf_environment[environment].email }
 }
 
 output "tf_environment_state_buckets" {
   description = "Names of the deployers' state buckets, by environment folder name."
   value       = { for environment in keys(local.environments) : environment => google_storage_bucket.state[environment].name }
+}
+
+output "additional_organizations" {
+  description = <<-EOT
+  The deployers of the further organisations, by organisation key:
+    `tf_environment_emails`, the emails of the `tf-<short name>-<key>` deployer service accounts, by environment folder name;
+    `tf_environment_state_buckets`, the names of their state buckets, by environment folder name.
+  EOT
+  value = {
+    for key in keys(var.additional_organizations) : key => {
+      tf_environment_emails        = { for deployer_key, deployer in local.deployers : deployer.environment => google_service_account.tf_environment[deployer_key].email if deployer.organization == key }
+      tf_environment_state_buckets = { for deployer_key, deployer in local.deployers : deployer.environment => google_storage_bucket.state[deployer_key].name if deployer.organization == key }
+    }
+  }
 }
 
 output "github_workload_identity_provider" {
